@@ -1,7 +1,7 @@
 import httpx
 
 RECORD_API = "http://34.95.216.110:8000/gravar"
-TRANSCRIBE_API = "http://127.0.0.1:8001/process-audio"  # ajuste conforme onde está rodando
+TRANSCRIBE_API = "https://maria-production.up.railway.app/process-audio"  # ajuste conforme onde está rodando
 
 async def process_meeting(meeting_url: str) -> str:
     async with httpx.AsyncClient(timeout=300.0) as client:
