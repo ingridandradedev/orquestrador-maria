@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware  # Importar o middleware de CORS
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine
 from app import models, schemas, orchestrator
@@ -6,6 +7,15 @@ from app import models, schemas, orchestrator
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+# Configuração do CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permitir chamadas de qualquer domínio
+    allow_credentials=True,
+    allow_methods=["*"],  # Permitir todos os métodos (GET, POST, etc.)
+    allow_headers=["*"],  # Permitir todos os headers
+)
 
 # Dependency
 def get_db():
