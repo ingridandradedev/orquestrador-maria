@@ -6,5 +6,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./app ./app
+COPY .env .  
+
+# Instale o python-dotenv no ambiente do container
+RUN pip install python-dotenv
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
