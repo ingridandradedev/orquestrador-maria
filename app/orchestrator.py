@@ -9,7 +9,7 @@ async def stream_recording(meeting_url: str) -> AsyncGenerator[str, None]:
         async with client.stream("GET", f"{RECORD_API_BASE}/gravar", params={"url": meeting_url}) as response:
             async for line in response.aiter_lines():
                 if line:
-                    yield f"data: {line}\n\n"
+                    yield line
 
 async def stop_recording(recording_id: str) -> dict:
     async with httpx.AsyncClient(timeout=300.0) as client:
