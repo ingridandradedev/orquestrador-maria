@@ -8,3 +8,6 @@ class MeetingResponse(BaseModel):
     user_id: str
     meeting_url: str
     document_url: str
+
+class StopResponse(BaseModel):
+    status: str
