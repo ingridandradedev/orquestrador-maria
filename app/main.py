@@ -4,21 +4,21 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine
 from app import models, orchestrator
+import json
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# Configuração do CORS
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permitir chamadas de qualquer domínio
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Permitir todos os métodos (GET, POST, etc.)
-    allow_headers=["*"],  # Permitir todos os headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Dependency
 def get_db():
     db = SessionLocal()
     try:
@@ -30,27 +30,41 @@ def get_db():
 async def orquestrar(meeting_url: str, user_id: str, db: Session = Depends(get_db)):
     try:
         async def event_stream():
-            async for message in orchestrator.stream_recording(meeting_url):
-                yield f"data: {message}\n\n"
-                # Verifica se a mensagem final foi recebida
-                if '"event": "completed"' in message:
-                    data = eval(message.split("data: ")[1])  # Converte a string JSON para dict
-                    gs_uri = data.get("gs_uri")
-                    public_url = data.get("public_url")
-                    recording_id = data.get("recording_id")
-                    if gs_uri:
-                        # Mensagem intermediária indicando que o gs_uri está sendo enviado para o transcriber
-                        yield f"data: {{'event': 'sending_to_transcriber', 'gs_uri': '{gs_uri}'}}\n\n"
-                        pdf_url = await orchestrator.transcribe_audio(gs_uri)
-                        meeting = models.MeetingDocument(
-                            user_id=user_id,
-                            meeting_url=meeting_url,
-                            audio_url=public_url,
-                            document_url=pdf_url
-                        )
-                        db.add(meeting)
-                        db.commit()
-                        yield f"data: {{'event': 'transcription_completed', 'pdf_url': '{pdf_url}'}}\n\n"
+            async for raw in orchestrator.stream_recording(meeting_url):
+                # 1) Limpa prefixo "data: " que já vem do record API
+                if raw.startswith("data:"):
+                    payload = raw[len("data:"):].strip()
+                else:
+                    payload = raw
+
+                # 2) Reenvia no formato SSE correto
+                yield f"data: {payload}\n\n"
+
+                # 3) Parse JSON e trata evento "completed"
+                obj = json.loads(payload)
+                if obj.get("event") == "completed":
+                    gs_uri      = obj["gs_uri"]
+                    public_url  = obj["public_url"]
+                    recording_id = obj["recording_id"]
+
+                    # 4) Mensagem intermediária antes de transcrever
+                    yield f"data: {{\"event\": \"sending_to_transcriber\", \"gs_uri\": \"{gs_uri}\"}}\n\n"
+
+                    # 5) Chama transcriber
+                    pdf_url = await orchestrator.transcribe_audio(gs_uri)
+
+                    # 6) Persiste no banco
+                    meeting = models.MeetingDocument(
+                        user_id=user_id,
+                        meeting_url=meeting_url,
+                        audio_url=public_url,
+                        document_url=pdf_url
+                    )
+                    db.add(meeting)
+                    db.commit()
+
+                    # 7) Evento final
+                    yield f"data: {{\"event\": \"transcription_completed\", \"pdf_url\": \"{pdf_url}\"}}\n\n"
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
