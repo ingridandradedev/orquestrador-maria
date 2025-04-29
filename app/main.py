@@ -8,7 +8,11 @@ import json
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+app = FastAPI(
+    title="Orquestrador Maria",
+    description="API para orquestrar gravações e transcrições de reuniões.",
+    version="1.0.0"
+)
 
 # CORS
 app.add_middleware(
