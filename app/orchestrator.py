@@ -19,7 +19,7 @@ async def stop_recording(recording_id: str) -> dict:
 
 async def transcribe_audio(gs_uri: str) -> str:
     TRANSCRIBE_API = "https://maria-production.up.railway.app/process-audio"
-    async with httpx.AsyncClient(timeout=300.0) as client:
+    async with httpx.AsyncClient(timeout=3600.0) as client:
         response = await client.post(
             TRANSCRIBE_API,
             json={"audio_url": gs_uri}
