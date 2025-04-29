@@ -10,7 +10,7 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Orquestrador Maria",
-    description="API para orquestrar gravações e transcrições de reuniões.",
+    description="API para orquestrar gravações e transcrições de reuniões com a Maria.",
     version="1.0.0"
 )
 
