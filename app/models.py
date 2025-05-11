@@ -9,4 +9,5 @@ class MeetingDocument(Base):
     meeting_url = Column(String, nullable=False)
     audio_url = Column(String, nullable=False)
     document_url = Column(String, nullable=False)
+    transcription = Column(String, nullable=False)  # novo campo
     created_at = Column(TIMESTAMP, server_default=func.now())

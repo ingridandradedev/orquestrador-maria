@@ -17,7 +17,7 @@ async def stop_recording(recording_id: str) -> dict:
         response.raise_for_status()
         return response.json()
 
-async def transcribe_audio(gs_uri: str) -> str:
+async def transcribe_audio(gs_uri: str) -> dict:
     TRANSCRIBE_API = "http://34.39.148.187:8080/process-audio"
     async with httpx.AsyncClient(timeout=3600.0) as client:
         response = await client.post(
@@ -25,4 +25,5 @@ async def transcribe_audio(gs_uri: str) -> str:
             json={"audio_url": gs_uri}
         )
         response.raise_for_status()
-        return response.json()["pdf_url"]
+        # agora retorna {"pdf_url": "...", "meeting_transcription": "..."}
+        return response.json()

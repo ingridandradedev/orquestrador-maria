@@ -35,40 +35,34 @@ async def orquestrar(meeting_url: str, user_id: str, db: Session = Depends(get_d
     try:
         async def event_stream():
             async for raw in orchestrator.stream_recording(meeting_url):
-                # 1) Limpa prefixo "data: " que já vem do record API
-                if raw.startswith("data:"):
-                    payload = raw[len("data:"):].strip()
-                else:
-                    payload = raw
-
-                # 2) Reenvia no formato SSE correto
+                payload = raw[len("data:"):].strip() if raw.startswith("data:") else raw
                 yield f"data: {payload}\n\n"
 
-                # 3) Parse JSON e trata evento "completed"
                 obj = json.loads(payload)
                 if obj.get("event") == "completed":
-                    gs_uri      = obj["gs_uri"]
-                    public_url  = obj["public_url"]
-                    recording_id = obj["recording_id"]
+                    gs_uri       = obj["gs_uri"]
+                    public_url   = obj["public_url"]
 
-                    # 4) Mensagem intermediária antes de transcrever
                     yield f"data: {{\"event\": \"sending_to_transcriber\", \"gs_uri\": \"{gs_uri}\"}}\n\n"
 
-                    # 5) Chama transcriber
-                    pdf_url = await orchestrator.transcribe_audio(gs_uri)
+                    # agora recebe dict com pdf_url + meeting_transcription
+                    result = await orchestrator.transcribe_audio(gs_uri)
+                    pdf_url      = result["pdf_url"]
+                    transcript   = result["meeting_transcription"]
 
-                    # 6) Persiste no banco
+                    # persiste no banco
                     meeting = models.MeetingDocument(
                         user_id=user_id,
                         meeting_url=meeting_url,
                         audio_url=public_url,
-                        document_url=pdf_url
+                        document_url=pdf_url,
+                        transcription=transcript
                     )
                     db.add(meeting)
                     db.commit()
 
-                    # 7) Evento final
-                    yield f"data: {{\"event\": \"transcription_completed\", \"pdf_url\": \"{pdf_url}\"}}\n\n"
+                    # evento final com os dois campos
+                    yield f"data: {{\"event\": \"transcription_completed\", \"pdf_url\": \"{pdf_url}\", \"meeting_transcription\": \"{transcript}\"}}\n\n"
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
