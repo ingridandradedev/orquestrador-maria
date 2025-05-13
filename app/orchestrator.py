@@ -18,7 +18,7 @@ async def stop_recording(recording_id: str) -> dict:
         return response.json()
 
 async def transcribe_audio(gs_uri: str) -> dict:
-    TRANSCRIBE_API = "http://34.39.148.187:8080/process-audio"
+    TRANSCRIBE_API = "https://maria-ai-agent-831365552942.us-central1.run.app/process-audio"
     async with httpx.AsyncClient(timeout=3600.0) as client:
         response = await client.post(
             TRANSCRIBE_API,
