@@ -56,7 +56,7 @@ async def orquestrar(meeting_url: str, user_id: str, db: Session = Depends(get_d
                         meeting_url=meeting_url,
                         audio_url=public_url,
                         document_url=pdf_url,
-                        transcription=transcript
+                        meeting_transcript=transcript   # ajustado para o nome correto
                     )
                     db.add(meeting)
                     db.commit()
